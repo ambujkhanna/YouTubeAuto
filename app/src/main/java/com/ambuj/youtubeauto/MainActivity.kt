@@ -159,7 +159,6 @@ class MainActivity : AppCompatActivity() {
         if (fullscreenView != null) exitFullscreen()
         webView.stopLoading()
         webView.webChromeClient = null
-        webView.webViewClient = null
         webView.destroy()
         super.onDestroy()
     }
