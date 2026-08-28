@@ -1,7 +1,6 @@
 package com.ambuj.youtubeauto
 
 import android.annotation.SuppressLint
-import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -13,10 +12,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.webkit.WebSettingsCompat
-import androidx.webkit.WebViewFeature
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
@@ -24,22 +20,35 @@ class MainActivity : AppCompatActivity() {
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
 
     private val allowedHosts = setOf(
-        "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com",
-        "youtu.be", "www.youtu.be", "youtube-nocookie.com", "www.youtube-nocookie.com",
-        "ytimg.com", "i.ytimg.com", "googlevideo.com", "googleusercontent.com",
-        "google.com", "www.google.com", "accounts.google.com"
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtu.be",
+        "www.youtu.be",
+        "youtube-nocookie.com",
+        "www.youtube-nocookie.com",
+        "ytimg.com",
+        "i.ytimg.com",
+        "googlevideo.com",
+        "googleusercontent.com",
+        "ggpht.com",
+        "google.com",
+        "www.google.com",
+        "accounts.google.com",
+        "youtubei.googleapis.com"
     )
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_main)
 
         webView = findViewById(R.id.webView)
         webView.setBackgroundColor(Color.BLACK)
 
-        with(webView.settings) {
+        webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
@@ -49,25 +58,22 @@ class MainActivity : AppCompatActivity() {
             allowFileAccess = false
             allowContentAccess = false
             javaScriptCanOpenWindowsAutomatically = false
-            userAgentString = userAgentString + " YouTubeAuto/0.1"
+            setGeolocationEnabled(false)
+            userAgentString = "$userAgentString YouTubeAuto/0.1.0"
         }
 
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
-            WebSettingsCompat.setForceDark(webView.settings, WebSettingsCompat.FORCE_DARK_OFF)
-        }
-
         webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                val uri = request.url
-                return !isAllowed(uri)
-            }
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean = !isAllowed(request.url)
 
-            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                return !isAllowed(Uri.parse(url))
-            }
+            @Suppress("DEPRECATION")
+            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean =
+                !isAllowed(Uri.parse(url))
         }
 
         webView.webChromeClient = object : WebChromeClient() {
@@ -76,19 +82,18 @@ class MainActivity : AppCompatActivity() {
                     callback.onCustomViewHidden()
                     return
                 }
+
                 fullscreenView = view
                 fullscreenCallback = callback
-                val root = findViewById<FrameLayout>(R.id.root)
-                root.addView(view, FrameLayout.LayoutParams(-1, -1))
-                webView.visibility = View.GONE
-                window.decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_FULLSCREEN or
-                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                findViewById<FrameLayout>(R.id.root).addView(
+                    view,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
                     )
+                )
+                webView.visibility = View.GONE
+                hideSystemUi()
             }
 
             override fun onHideCustomView() {
@@ -96,14 +101,31 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        webView.loadUrl("https://www.youtube.com/")
+        if (savedInstanceState == null) {
+            webView.loadUrl("https://www.youtube.com/")
+        } else {
+            webView.restoreState(savedInstanceState)
+        }
     }
 
     private fun isAllowed(uri: Uri): Boolean {
         val scheme = uri.scheme?.lowercase() ?: return false
         if (scheme != "https") return false
+
         val host = uri.host?.lowercase() ?: return false
         return allowedHosts.any { host == it || host.endsWith(".$it") }
+    }
+
+    private fun hideSystemUi() {
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            )
     }
 
     private fun exitFullscreen() {
@@ -113,9 +135,11 @@ class MainActivity : AppCompatActivity() {
         fullscreenCallback?.onCustomViewHidden()
         fullscreenCallback = null
         webView.visibility = View.VISIBLE
+        @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
     }
 
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (fullscreenView != null) {
             exitFullscreen()
@@ -126,10 +150,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onNewIntent(intent: android.content.Intent?) {
-        super.onNewIntent(intent)
-        val url = intent?.data
-        if (url != null && isAllowed(url)) webView.loadUrl(url.toString())
+    override fun onSaveInstanceState(outState: Bundle) {
+        webView.saveState(outState)
+        super.onSaveInstanceState(outState)
     }
 
     override fun onDestroy() {

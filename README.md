@@ -1,39 +1,22 @@
-# YouTube Auto
+# YouTubeAuto v0.1
 
-A minimal, security-focused Android WebView app intended to test YouTube playback on Android Auto head units while parked.
+Minimal security-focused YouTube WebView proof of concept for testing with Android Auto.
 
-## Security design
+## Scope
 
-- Only `INTERNET` permission.
-- No analytics or telemetry.
-- No microphone, location, contacts, SMS, notification, camera, or storage permissions.
-- File/content access disabled in WebView.
-- HTTPS-only navigation.
-- Navigation is restricted to YouTube/Google media domains used by YouTube.
-- No code intended to bypass Android Auto's driving restrictions.
+- Kotlin + Android WebView
+- HTTPS-only
+- YouTube/Google media host allowlist
+- `INTERNET` permission only
+- No analytics or tracking SDK
+- No location, microphone, contacts, storage, or notification permissions
+- Fullscreen WebView video support
+- GitHub Actions debug APK build
 
-## Important
+## Android Auto note
 
-This is an experimental sideloaded app. Android Auto may restrict or block it depending on the Android Auto/Google Play Services version and head unit. The project follows the same general manifest approach used by the open-source AABrowser project, but it is intentionally much smaller.
+This POC uses the same broad sideloaded Android Auto discovery pattern seen in AABrowser (`CAR_LAUNCHER` plus automotive metadata). Android Auto controls whether and when the app is visible or usable. The project does not attempt to bypass driving restrictions.
 
-Use only while safely parked or as appropriate for your local laws and Android Auto safety restrictions.
+## Build
 
-## Build in GitHub Codespaces / GitHub Actions
-
-1. Create a new GitHub repository.
-2. Upload this project.
-3. GitHub Actions will build the debug APK.
-4. Download the `YouTubeAuto-debug-apk` artifact.
-5. Install it on your Android phone.
-6. In Android Auto settings, enable Developer mode by tapping Version 10 times, then enable **Unknown sources**.
-7. Connect the phone to the car and check whether **YouTube Auto** appears.
-
-## Local build
-
-Requires JDK 21 and Android SDK 37.
-
-```bash
-gradle assembleDebug
-```
-
-The APK is under `app/build/outputs/apk/debug/`.
+GitHub Actions installs Gradle 9.5 and JDK 17, then runs `assembleDebug`. The resulting APK is uploaded as a workflow artifact.

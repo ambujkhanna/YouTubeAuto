@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Network access only. No location, microphone, contacts, storage, or notifications. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -9,14 +11,20 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:resizeableActivity="true"
         android:supportsRtl="true"
-        android:theme="@style/Theme.YouTubeAuto">
+        android:theme="@style/Theme.YouTubeAuto"
+        android:usesCleartextTraffic="false">
 
-        <meta-data android:name="distractionOptimized" android:value="true" />
-        <meta-data android:name="android.max_aspect" android:value="5.0" />
-        <meta-data android:name="androidx.car.app.minCarApiLevel" android:value="7" />
-        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />
+        <!-- Required for the same sideloaded Android Auto discovery path used by AABrowser. -->
+        <meta-data
+            android:name="distractionOptimized"
+            android:value="true" />
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="7" />
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
 
         <activity
             android:name=".MainActivity"
