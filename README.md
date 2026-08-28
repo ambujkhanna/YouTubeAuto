@@ -1,22 +1,13 @@
-# YouTubeAuto v0.1
+# YouTubeAuto v0.1.1
 
-Minimal security-focused YouTube WebView proof of concept for testing with Android Auto.
-
-## Scope
-
-- Kotlin + Android WebView
-- HTTPS-only
-- YouTube/Google media host allowlist
-- `INTERNET` permission only
-- No analytics or tracking SDK
-- No location, microphone, contacts, storage, or notification permissions
-- Fullscreen WebView video support
-- GitHub Actions debug APK build
-
-## Android Auto note
-
-This POC uses the same broad sideloaded Android Auto discovery pattern seen in AABrowser (`CAR_LAUNCHER` plus automotive metadata). Android Auto controls whether and when the app is visible or usable. The project does not attempt to bypass driving restrictions.
+Minimal Android WebView proof of concept for testing a YouTube experience on compatible Android Auto setups.
 
 ## Build
 
-GitHub Actions installs Gradle 9.5 and JDK 17, then runs `assembleDebug`. The resulting APK is uploaded as a workflow artifact.
+This project uses Android Gradle Plugin 9.3 and AGP 9 built-in Kotlin support. Do not add `org.jetbrains.kotlin.android`; AGP provides Kotlin support for this project.
+
+The included GitHub Actions workflow installs Gradle 9.5 and builds `app-debug.apk`.
+
+## Security posture
+
+The app requests only `INTERNET`. It has no analytics SDK and no location, contacts, microphone, camera, SMS, notification, or storage permissions.
