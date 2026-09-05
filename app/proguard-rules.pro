@@ -1,1 +1,1 @@
-# YouTubeAuto currently needs no custom R8 rules.
+# YouTubeAuto-specific R8 rules.

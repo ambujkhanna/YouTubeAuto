@@ -1,39 +1,13 @@
-# YouTube Auto
+# YouTubeAuto v0.1.1
 
-A minimal, security-focused Android WebView app intended to test YouTube playback on Android Auto head units while parked.
+Minimal Android WebView proof of concept for testing a YouTube experience on compatible Android Auto setups.
 
-## Security design
+## Build
 
-- Only `INTERNET` permission.
-- No analytics or telemetry.
-- No microphone, location, contacts, SMS, notification, camera, or storage permissions.
-- File/content access disabled in WebView.
-- HTTPS-only navigation.
-- Navigation is restricted to YouTube/Google media domains used by YouTube.
-- No code intended to bypass Android Auto's driving restrictions.
+This project uses Android Gradle Plugin 9.3 and AGP 9 built-in Kotlin support. Do not add `org.jetbrains.kotlin.android`; AGP provides Kotlin support for this project.
 
-## Important
+The included GitHub Actions workflow installs Gradle 9.5 and builds `app-debug.apk`.
 
-This is an experimental sideloaded app. Android Auto may restrict or block it depending on the Android Auto/Google Play Services version and head unit. The project follows the same general manifest approach used by the open-source AABrowser project, but it is intentionally much smaller.
+## Security posture
 
-Use only while safely parked or as appropriate for your local laws and Android Auto safety restrictions.
-
-## Build in GitHub Codespaces / GitHub Actions
-
-1. Create a new GitHub repository.
-2. Upload this project.
-3. GitHub Actions will build the debug APK.
-4. Download the `YouTubeAuto-debug-apk` artifact.
-5. Install it on your Android phone.
-6. In Android Auto settings, enable Developer mode by tapping Version 10 times, then enable **Unknown sources**.
-7. Connect the phone to the car and check whether **YouTube Auto** appears.
-
-## Local build
-
-Requires JDK 21 and Android SDK 37.
-
-```bash
-gradle assembleDebug
-```
-
-The APK is under `app/build/outputs/apk/debug/`.
+The app requests only `INTERNET`. It has no analytics SDK and no location, contacts, microphone, camera, SMS, notification, or storage permissions.

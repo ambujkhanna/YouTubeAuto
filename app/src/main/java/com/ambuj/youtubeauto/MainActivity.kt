@@ -13,8 +13,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
-import androidx.webkit.WebSettingsCompat
-import androidx.webkit.WebViewFeature
 
 class MainActivity : AppCompatActivity() {
 
@@ -36,33 +34,26 @@ class MainActivity : AppCompatActivity() {
         "i.ytimg.com",
         "googlevideo.com",
         "googleusercontent.com",
+        "ggpht.com",
         "google.com",
         "www.google.com",
-        "accounts.google.com"
+        "accounts.google.com",
+        "youtubei.googleapis.com"
     )
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-        )
+      window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_main)
 
         webView = findViewById(R.id.webView)
         webView.setBackgroundColor(Color.BLACK)
 
-        /*
-         * Keep WebView configuration close to Android defaults.
-         *
-         * We deliberately do NOT modify the User-Agent or apply
-         * global text scaling here, because those can cause unusual
-         * rendering behaviour on the Android Auto display.
-         */
-        with(webView.settings) {
+        webView.settings.apply {
+
             javaScriptEnabled = true
             domStorageEnabled = true
 
@@ -77,12 +68,34 @@ class MainActivity : AppCompatActivity() {
 
             javaScriptCanOpenWindowsAutomatically = false
 
-            // Keep normal WebView scaling.
+            // Privacy: location access remains disabled.
+            setGeolocationEnabled(false)
+
+            /*
+             * Keep WebView scaling at its normal value.
+             * This is important for testing the Android Auto
+             * keyboard text-size issue.
+             */
             textZoom = 100
 
-            // Let the mobile YouTube website control responsive layout.
+            /*
+             * Do not force desktop/overview scaling.
+             * Let the responsive YouTube mobile website handle
+             * the display size.
+             */
             useWideViewPort = false
             loadWithOverviewMode = false
+
+            /*
+             * IMPORTANT:
+             * Do not modify the default WebView User-Agent.
+             *
+             * The previous version appended:
+             * "YouTubeAuto/0.1.0"
+             *
+             * Removing that gives YouTube and WebView their
+             * normal browser/device detection behaviour.
+             */
         }
 
         /*
@@ -92,17 +105,7 @@ class MainActivity : AppCompatActivity() {
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 
         /*
-         * Prevent forced dark mode from changing YouTube rendering.
-         */
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
-            WebSettingsCompat.setForceDark(
-                webView.settings,
-                WebSettingsCompat.FORCE_DARK_OFF
-            )
-        }
-
-        /*
-         * Only allow HTTPS navigation to approved YouTube/Google domains.
+         * Restrict navigation to approved YouTube/Google domains.
          */
         webView.webViewClient = object : WebViewClient() {
 
@@ -113,6 +116,7 @@ class MainActivity : AppCompatActivity() {
                 return !isAllowed(request.url)
             }
 
+            @Suppress("DEPRECATION")
             override fun shouldOverrideUrlLoading(
                 view: WebView,
                 url: String
@@ -122,7 +126,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         /*
-         * Handles YouTube fullscreen video.
+         * Handle YouTube fullscreen video.
          */
         webView.webChromeClient = object : WebChromeClient() {
 
@@ -139,9 +143,7 @@ class MainActivity : AppCompatActivity() {
                 fullscreenView = view
                 fullscreenCallback = callback
 
-                val root = findViewById<FrameLayout>(R.id.root)
-
-                root.addView(
+                findViewById<FrameLayout>(R.id.root).addView(
                     view,
                     FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
@@ -151,13 +153,7 @@ class MainActivity : AppCompatActivity() {
 
                 webView.visibility = View.GONE
 
-                window.decorView.systemUiVisibility =
-                    View.SYSTEM_UI_FLAG_FULLSCREEN or
-                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                hideSystemUi()
             }
 
             override fun onHideCustomView() {
@@ -165,13 +161,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        /*
-         * Use YouTube's mobile website.
-         *
-         * This should provide better responsive sizing and touch targets
-         * on the Android Auto display.
-         */
-        webView.loadUrl("https://m.youtube.com/")
+        if (savedInstanceState == null) {
+
+            /*
+             * Use the mobile YouTube site for better responsive
+             * sizing and touch targets on the car display.
+             */
+            webView.loadUrl("https://m.youtube.com/")
+
+        } else {
+
+            webView.restoreState(savedInstanceState)
+        }
     }
 
     private fun isAllowed(uri: Uri): Boolean {
@@ -189,6 +190,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun hideSystemUi() {
+
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            )
+    }
+
     private fun exitFullscreen() {
 
         val view = fullscreenView ?: return
@@ -202,11 +216,12 @@ class MainActivity : AppCompatActivity() {
 
         webView.visibility = View.VISIBLE
 
+        @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility =
             View.SYSTEM_UI_FLAG_VISIBLE
     }
 
-    @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
 
         if (fullscreenView != null) {
@@ -223,15 +238,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onNewIntent(intent: android.content.Intent?) {
+    override fun onSaveInstanceState(outState: Bundle) {
 
-        super.onNewIntent(intent)
+        webView.saveState(outState)
 
-        val url = intent?.data
-
-        if (url != null && isAllowed(url)) {
-            webView.loadUrl(url.toString())
-        }
+        super.onSaveInstanceState(outState)
     }
 
     override fun onDestroy() {
