@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
 
     private var backgroundAudioWhileDrivingSupported = false
+    private var mediaPausedByLifecycle = false
 
     private var fullscreenView: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
@@ -272,12 +273,32 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         // Android Auto may pause/obscure parked apps when driving starts.
         // Explicitly pause HTML5 media before losing foreground control.
+        mediaPausedByLifecycle = true
+        Log.i(TAG, "Lifecycle pause: pausing HTML5 media")
         pauseHtml5Media()
         super.onPause()
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        // Do not automatically resume playback here. If Android Auto has
+        // returned control after a driving transition, the user can press
+        // Play again while parked. This avoids accidentally starting media
+        // during a restricted/driving state.
+        if (mediaPausedByLifecycle) {
+            Log.i(TAG, "Lifecycle resume: media remains paused until user starts playback")
+            mediaPausedByLifecycle = false
+            pauseHtml5Media()
+        } else {
+            Log.i(TAG, "Lifecycle resume: no car-induced media pause recorded")
+        }
+    }
+
     private fun pauseHtml5Media() {
         if (!::webView.isInitialized) return
+
+        Log.d(TAG, "Requesting HTML5 video/audio pause")
 
         webView.evaluateJavascript(
             """
