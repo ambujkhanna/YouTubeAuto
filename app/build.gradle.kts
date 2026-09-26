@@ -34,4 +34,5 @@ dependencies {
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.webkit:webkit:1.14.0")
+    implementation("androidx.car.app:app:1.7.0")
 }
