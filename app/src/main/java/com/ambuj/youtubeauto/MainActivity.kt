@@ -18,6 +18,9 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.car.app.features.CarFeatures
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
 
 class MainActivity : AppCompatActivity() {
 
@@ -55,7 +58,16 @@ class MainActivity : AppCompatActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
+
+        val root = findViewById<FrameLayout>(R.id.root)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(root)
 
         findViewById<android.widget.Button>(R.id.minimizeButton).setOnClickListener {
             enterParkPlayPictureInPicture()
@@ -228,13 +240,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun enterParkPlayPictureInPicture() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Log.w(TAG, "Picture-in-picture is not supported on this Android version")
+            moveTaskToBack(true)
+            return
+        }
 
-        val params = PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(16, 9))
-            .build()
+        try {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
 
-        enterPictureInPictureMode(params)
+            val entered = enterPictureInPictureMode(params)
+
+            if (!entered) {
+                Log.w(TAG, "Picture-in-picture request was not accepted; minimizing task")
+                moveTaskToBack(true)
+            }
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Picture-in-picture unavailable; minimizing task instead", e)
+            moveTaskToBack(true)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Picture-in-picture permission/state rejected; minimizing task instead", e)
+            moveTaskToBack(true)
+        }
     }
 
     override fun onPictureInPictureModeChanged(
