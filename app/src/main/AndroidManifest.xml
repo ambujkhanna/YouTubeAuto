@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Network access only. No location, microphone, contacts, storage, or notifications. -->
+    <!-- Network access only. No location, microphone, contacts, storage, or notification permissions. -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        Optional Android for Cars capability.
+        This does not bypass driving restrictions; supported car systems
+        may provide driving-optimized audio controls for parked video apps.
+    -->
+    <uses-feature
+        android:name="com.android.car.background_audio_while_driving"
+        android:required="false" />
 
     <application
         android:allowBackup="false"
@@ -15,7 +24,6 @@
         android:theme="@style/Theme.YouTubeAuto"
         android:usesCleartextTraffic="false">
 
-        <!-- Required for the same sideloaded Android Auto discovery path used by AABrowser. -->
         <meta-data
             android:name="distractionOptimized"
             android:value="true" />
