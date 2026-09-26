@@ -2,6 +2,7 @@ package com.ambuj.youtubeauto
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.util.Log
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -13,10 +14,13 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.car.app.CarFeatures
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+
+    private var backgroundAudioWhileDrivingSupported = false
 
     private var fullscreenView: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
@@ -48,6 +52,21 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_main)
+
+        backgroundAudioWhileDrivingSupported = try {
+            CarFeatures.isFeatureEnabled(
+                this,
+                CarFeatures.FEATURE_BACKGROUND_AUDIO_WHILE_DRIVING
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to query background-audio car capability", e)
+            false
+        }
+
+        Log.i(
+            TAG,
+            "Background audio while driving supported: $backgroundAudioWhileDrivingSupported"
+        )
 
         webView = findViewById(R.id.webView)
         webView.setBackgroundColor(Color.BLACK)
@@ -250,6 +269,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        // Android Auto may pause/obscure parked apps when driving starts.
+        // Explicitly pause HTML5 media before losing foreground control.
+        pauseHtml5Media()
+        super.onPause()
+    }
+
+    private fun pauseHtml5Media() {
+        if (!::webView.isInitialized) return
+
+        webView.evaluateJavascript(
+            """
+            (function() {
+                try {
+                    document.querySelectorAll('video, audio').forEach(function(media) {
+                        try { media.pause(); } catch (e) {}
+                    });
+                } catch (e) {}
+            })();
+            """.trimIndent(),
+            null
+        )
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         webView.saveState(outState)
         super.onSaveInstanceState(outState)
@@ -265,5 +308,9 @@ class MainActivity : AppCompatActivity() {
         webView.destroy()
 
         super.onDestroy()
+    }
+
+    companion object {
+        private const val TAG = "ParkPlay"
     }
 }
