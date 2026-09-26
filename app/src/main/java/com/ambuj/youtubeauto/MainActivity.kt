@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-      window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_main)
 
@@ -53,10 +53,8 @@ class MainActivity : AppCompatActivity() {
         webView.setBackgroundColor(Color.BLACK)
 
         webView.settings.apply {
-
             javaScriptEnabled = true
             domStorageEnabled = true
-
             mediaPlaybackRequiresUserGesture = false
 
             builtInZoomControls = false
@@ -65,48 +63,18 @@ class MainActivity : AppCompatActivity() {
 
             allowFileAccess = false
             allowContentAccess = false
-
             javaScriptCanOpenWindowsAutomatically = false
-
-            // Privacy: location access remains disabled.
             setGeolocationEnabled(false)
 
-            /*
-             * Keep WebView scaling at its normal value.
-             * This is important for testing the Android Auto
-             * keyboard text-size issue.
-             */
+            // Keep WebView text/display scaling normal.
             textZoom = 100
-
-            /*
-             * Do not force desktop/overview scaling.
-             * Let the responsive YouTube mobile website handle
-             * the display size.
-             */
             useWideViewPort = false
             loadWithOverviewMode = false
-
-            /*
-             * IMPORTANT:
-             * Do not modify the default WebView User-Agent.
-             *
-             * The previous version appended:
-             * "YouTubeAuto/0.1.0"
-             *
-             * Removing that gives YouTube and WebView their
-             * normal browser/device detection behaviour.
-             */
         }
 
-        /*
-         * Cookies are required for normal YouTube login/session behaviour.
-         */
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 
-        /*
-         * Restrict navigation to approved YouTube/Google domains.
-         */
         webView.webViewClient = object : WebViewClient() {
 
             override fun shouldOverrideUrlLoading(
@@ -123,18 +91,22 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 return !isAllowed(Uri.parse(url))
             }
+
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+
+                if (isAllowed(Uri.parse(url))) {
+                    forcePlainTextSearchInputs(view)
+                }
+            }
         }
 
-        /*
-         * Handle YouTube fullscreen video.
-         */
         webView.webChromeClient = object : WebChromeClient() {
 
             override fun onShowCustomView(
                 view: View,
                 callback: CustomViewCallback
             ) {
-
                 if (fullscreenView != null) {
                     callback.onCustomViewHidden()
                     return
@@ -162,21 +134,68 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (savedInstanceState == null) {
-
-            /*
-             * Use the mobile YouTube site for better responsive
-             * sizing and touch targets on the car display.
-             */
             webView.loadUrl("https://m.youtube.com/")
-
         } else {
-
             webView.restoreState(savedInstanceState)
         }
     }
 
-    private fun isAllowed(uri: Uri): Boolean {
+    /**
+     * YouTube's search field can be exposed to Android/Android Auto as a
+     * search/URL-style input. Some car keyboards then show secondary
+     * symbols prominently, making the letters hard to read.
+     *
+     * Change only YouTube search inputs to ordinary text input so the IME
+     * can prefer its alphabetic layout. Android/Android Auto still owns
+     * the actual keyboard, so the final layout remains device-dependent.
+     */
+    private fun forcePlainTextSearchInputs(view: WebView) {
+        val script = """
+            (function() {
+                function fixSearchInputs() {
+                    var inputs = document.querySelectorAll(
+                        'input[type="search"], input[name="search_query"], ' +
+                        'input[role="searchbox"], input[aria-label*="Search" i]'
+                    );
 
+                    inputs.forEach(function(input) {
+                        if (!input || input.dataset.parkplayKeyboardFix === '1') return;
+
+                        input.dataset.parkplayKeyboardFix = '1';
+
+                        try {
+                            input.setAttribute('type', 'text');
+                        } catch (e) {}
+
+                        input.setAttribute('inputmode', 'text');
+                        input.setAttribute('autocapitalize', 'none');
+                        input.setAttribute('autocomplete', 'off');
+                        input.setAttribute('autocorrect', 'off');
+                        input.setAttribute('spellcheck', 'false');
+                    });
+                }
+
+                fixSearchInputs();
+
+                if (!window.__parkplayKeyboardObserver) {
+                    window.__parkplayKeyboardObserver =
+                        new MutationObserver(fixSearchInputs);
+
+                    window.__parkplayKeyboardObserver.observe(
+                        document.documentElement,
+                        {
+                            childList: true,
+                            subtree: true
+                        }
+                    );
+                }
+            })();
+        """.trimIndent()
+
+        view.evaluateJavascript(script, null)
+    }
+
+    private fun isAllowed(uri: Uri): Boolean {
         val scheme = uri.scheme?.lowercase() ?: return false
 
         if (scheme != "https") {
@@ -191,7 +210,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun hideSystemUi() {
-
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = (
             View.SYSTEM_UI_FLAG_FULLSCREEN or
@@ -204,7 +222,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun exitFullscreen() {
-
         val view = fullscreenView ?: return
 
         (view.parent as? FrameLayout)?.removeView(view)
@@ -221,39 +238,30 @@ class MainActivity : AppCompatActivity() {
             View.SYSTEM_UI_FLAG_VISIBLE
     }
 
+    @Deprecated("Deprecated in Java")
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-
         if (fullscreenView != null) {
-
             exitFullscreen()
-
         } else if (webView.canGoBack()) {
-
             webView.goBack()
-
         } else {
-
             super.onBackPressed()
         }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-
         webView.saveState(outState)
-
         super.onSaveInstanceState(outState)
     }
 
     override fun onDestroy() {
-
         if (fullscreenView != null) {
             exitFullscreen()
         }
 
         webView.stopLoading()
         webView.webChromeClient = null
-
         webView.destroy()
 
         super.onDestroy()
