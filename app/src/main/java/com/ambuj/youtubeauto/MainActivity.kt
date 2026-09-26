@@ -7,6 +7,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.app.PictureInPictureParams
+import android.os.Build
+import android.util.Rational
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -53,6 +56,10 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_main)
+
+        findViewById<android.widget.Button>(R.id.minimizeButton).setOnClickListener {
+            enterParkPlayPictureInPicture()
+        }
 
         backgroundAudioWhileDrivingSupported = try {
             CarFeatures.isFeatureEnabled(
@@ -227,6 +234,26 @@ class MainActivity : AppCompatActivity() {
         return allowedHosts.any {
             host == it || host.endsWith(".$it")
         }
+    }
+
+    private fun enterParkPlayPictureInPicture() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val params = PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(16, 9))
+            .build()
+
+        enterPictureInPictureMode(params)
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+
+        findViewById<android.widget.Button>(R.id.minimizeButton)?.visibility =
+            if (isInPictureInPictureMode) View.GONE else View.VISIBLE
     }
 
     private fun hideSystemUi() {
