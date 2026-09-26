@@ -84,6 +84,10 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
 
+            // Reuse WebView HTTP/cache data on repeat launches instead of
+            // forcing a fresh resource download every time.
+            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+
             builtInZoomControls = false
             displayZoomControls = false
             setSupportZoom(false)
@@ -203,19 +207,6 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 fixSearchInputs();
-
-                if (!window.__parkplayKeyboardObserver) {
-                    window.__parkplayKeyboardObserver =
-                        new MutationObserver(fixSearchInputs);
-
-                    window.__parkplayKeyboardObserver.observe(
-                        document.documentElement,
-                        {
-                            childList: true,
-                            subtree: true
-                        }
-                    );
-                }
             })();
         """.trimIndent()
 
