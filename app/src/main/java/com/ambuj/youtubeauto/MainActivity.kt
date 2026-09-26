@@ -14,7 +14,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
-import androidx.car.app.features.CarFeatures
+import androidx.car.app.CarFeatures
 
 class MainActivity : AppCompatActivity() {
 
