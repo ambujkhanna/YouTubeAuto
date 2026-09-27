@@ -73,6 +73,10 @@ class MainActivity : AppCompatActivity() {
             enterParkPlayPictureInPicture()
         }
 
+        findViewById<android.widget.Button>(R.id.phoneCastButton).setOnClickListener {
+            startActivity(android.content.Intent(this, CastActivity::class.java))
+        }
+
         backgroundAudioWhileDrivingSupported = try {
             CarFeatures.isFeatureEnabled(
                 this,
