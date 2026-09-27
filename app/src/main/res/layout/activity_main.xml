@@ -11,6 +11,31 @@
         android:layout_height="match_parent"
         android:background="#000000" />
 
+    <ImageView
+        android:id="@+id/phoneCastImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:contentDescription="Phone screen cast" />
+
+    <TextView
+        android:id="@+id/phoneCastStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="12dp"
+        android:paddingLeft="12dp"
+        android:paddingTop="6dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="6dp"
+        android:background="#CC000000"
+        android:text="Phone screen cast active"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
     <Button
         android:id="@+id/phoneCastButton"
         android:layout_width="wrap_content"
