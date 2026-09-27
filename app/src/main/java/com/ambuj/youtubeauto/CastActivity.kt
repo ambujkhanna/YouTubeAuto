@@ -223,6 +223,7 @@ class CastActivity : Activity() {
         try { projection?.unregisterCallback(projectionCallback) } catch (_: Exception) {}
         try { projection?.stop() } catch (_: Exception) {}
         projection = null
+        try { stopService(Intent(this, CastProjectionService::class.java)) } catch (_: Exception) {}
         if (::startButton.isInitialized) startButton.text = "Start Phone Cast"
     }
 
