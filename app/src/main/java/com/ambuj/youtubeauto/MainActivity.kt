@@ -1,6 +1,7 @@
 package com.ambuj.youtubeauto
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Log
 import android.net.Uri
@@ -16,6 +17,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.car.app.features.CarFeatures
 import androidx.core.view.ViewCompat
@@ -25,6 +28,27 @@ import androidx.core.view.WindowCompat
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var phoneCastImage: ImageView
+
+    private val castFrameListener: (Bitmap?) -> Unit = { frame ->
+        runOnUiThread {
+            val active = CastFrameStore.isCasting && frame != null
+            phoneCastImage.visibility = if (active) View.VISIBLE else View.GONE
+            findViewById<View>(R.id.phoneCastStatus)?.visibility =
+                if (active) View.VISIBLE else View.GONE
+            findViewById<View>(R.id.webView)?.visibility =
+                if (active) View.GONE else View.VISIBLE
+            findViewById<View>(R.id.phoneCastButton)?.visibility =
+                if (active) View.GONE else View.VISIBLE
+            findViewById<View>(R.id.minimizeButton)?.visibility =
+                if (active) View.GONE else View.VISIBLE
+            if (active) {
+                phoneCastImage.setImageBitmap(frame)
+            } else {
+                phoneCastImage.setImageDrawable(null)
+            }
+        }
+    }
 
     private var backgroundAudioWhileDrivingSupported = false
     private var mediaPausedByLifecycle = false
@@ -60,6 +84,8 @@ class MainActivity : AppCompatActivity() {
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
+        phoneCastImage = findViewById(R.id.phoneCastImage)
+        CastFrameStore.addListener(castFrameListener)
 
         val root = findViewById<FrameLayout>(R.id.root)
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
@@ -74,7 +100,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<android.widget.Button>(R.id.phoneCastButton).setOnClickListener {
-            startActivity(android.content.Intent(this, CastActivity::class.java))
+            val displayId = display?.displayId ?: android.view.Display.DEFAULT_DISPLAY
+            if (displayId != android.view.Display.DEFAULT_DISPLAY) {
+                Toast.makeText(
+                    this,
+                    "Start Phone Cast from the ParkPlay Cast Control icon on the phone.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                startActivity(android.content.Intent(this, CastActivity::class.java))
+            }
         }
 
         backgroundAudioWhileDrivingSupported = try {
@@ -371,6 +406,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        CastFrameStore.removeListener(castFrameListener)
+
         if (fullscreenView != null) {
             exitFullscreen()
         }
