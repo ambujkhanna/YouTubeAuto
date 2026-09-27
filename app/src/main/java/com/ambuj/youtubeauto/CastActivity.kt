@@ -78,6 +78,20 @@ class CastActivity : Activity() {
 
     private fun startCasting(resultCode: Int, data: Intent) {
         try {
+            status.text = "Starting screen capture..."
+            val serviceIntent = Intent(this, CastProjectionService::class.java)
+            androidx.core.content.ContextCompat.startForegroundService(this, serviceIntent)
+            Handler(Looper.getMainLooper()).postDelayed({
+                continueCasting(resultCode, data)
+            }, 400)
+        } catch (e: Exception) {
+            stopCasting()
+            status.text = "Unable to start casting: ${e.message ?: "unknown error"}"
+        }
+    }
+
+    private fun continueCasting(resultCode: Int, data: Intent) {
+        try {
             val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             projection = manager.getMediaProjection(resultCode, data)
             projection?.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
