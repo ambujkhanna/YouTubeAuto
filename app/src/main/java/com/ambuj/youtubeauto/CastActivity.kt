@@ -11,6 +11,8 @@ import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import android.widget.Button
@@ -78,7 +80,7 @@ class CastActivity : Activity() {
         try {
             val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             projection = manager.getMediaProjection(resultCode, data)
-            projection?.registerCallback(projectionCallback, null)
+            projection?.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
 
             val metrics = DisplayMetrics()
             @Suppress("DEPRECATION")
