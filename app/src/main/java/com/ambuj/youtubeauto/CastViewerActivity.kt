@@ -43,13 +43,11 @@ class CastViewerActivity : AppCompatActivity() {
             }
         }
 
-        // The URL is deliberately editable so we can test the exact endpoint
-        // that already works in the user's laptop browser.
-        val initialUrl = intent.getStringExtra(EXTRA_URL).orEmpty()
-        if (initialUrl.isNotEmpty()) {
-            urlInput.setText(initialUrl)
-            webView.loadUrl(initialUrl)
-        }
+        // Keep a ready-to-use local default. The field remains editable when
+        // the phone gets a different IP address.
+        val initialUrl = intent.getStringExtra(EXTRA_URL).orEmpty().ifEmpty { DEFAULT_URL }
+        urlInput.setText(initialUrl)
+        webView.loadUrl(initialUrl)
     }
 
     override fun onDestroy() {
@@ -60,5 +58,6 @@ class CastViewerActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_URL = "cast_url"
+        const val DEFAULT_URL = "http://192.168.1.7:8080"
     }
 }
