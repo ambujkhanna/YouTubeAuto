@@ -10,8 +10,8 @@ android {
         applicationId = "com.ambuj.youtubeauto"
         minSdk = 35
         targetSdk = 37
-        versionCode = 9
-        versionName = "0.1.8"
+        versionCode = 11
+        versionName = "0.1.10"
     }
 
     buildTypes {
