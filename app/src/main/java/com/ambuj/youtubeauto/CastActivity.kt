@@ -41,6 +41,7 @@ class CastActivity : Activity() {
     @Volatile private var latestJpeg: ByteArray? = null
     private val running = AtomicBoolean(false)
     private val executor = Executors.newCachedThreadPool()
+    private val frameEncoding = AtomicBoolean(false)
 
     private val serviceReadyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -124,29 +125,36 @@ class CastActivity : Activity() {
             imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
             imageReader?.setOnImageAvailableListener({ reader ->
                 val image = reader.acquireLatestImage() ?: return@setOnImageAvailableListener
-                try {
-                    val plane = image.planes[0]
-                    val pixelStride = plane.pixelStride
-                    val rowStride = plane.rowStride
-                    val rowPadding = rowStride - pixelStride * width
-                    val paddedWidth = width + rowPadding / pixelStride
-                    val bitmap = Bitmap.createBitmap(paddedWidth, height, Bitmap.Config.ARGB_8888)
-                    bitmap.copyPixelsFromBuffer(plane.buffer)
-                    val cropped = if (paddedWidth != width) {
-                        Bitmap.createBitmap(bitmap, 0, 0, width, height)
-                    } else bitmap
-
-                    val output = java.io.ByteArrayOutputStream()
-                    cropped.compress(Bitmap.CompressFormat.JPEG, 50, output)
-                    latestJpeg = output.toByteArray()
-                    CastFrameStore.setFrame(cropped.copy(Bitmap.Config.ARGB_8888, false))
-
-                    if (cropped !== bitmap) cropped.recycle()
-                    bitmap.recycle()
-                } catch (_: Exception) {
-                    // Ignore a frame invalidated during rotation/display changes.
-                } finally {
+                if (!frameEncoding.compareAndSet(false, true)) {
                     image.close()
+                    return@setOnImageAvailableListener
+                }
+                executor.execute {
+                    try {
+                        val plane = image.planes[0]
+                        val pixelStride = plane.pixelStride
+                        val rowStride = plane.rowStride
+                        val rowPadding = rowStride - pixelStride * width
+                        val paddedWidth = width + rowPadding / pixelStride
+                        val bitmap = Bitmap.createBitmap(paddedWidth, height, Bitmap.Config.ARGB_8888)
+                        bitmap.copyPixelsFromBuffer(plane.buffer)
+                        val cropped = if (paddedWidth != width) {
+                            Bitmap.createBitmap(bitmap, 0, 0, width, height)
+                        } else bitmap
+
+                        val output = java.io.ByteArrayOutputStream()
+                        cropped.compress(Bitmap.CompressFormat.JPEG, 65, output)
+                        latestJpeg = output.toByteArray()
+                        CastFrameStore.setFrame(cropped.copy(Bitmap.Config.ARGB_8888, false))
+
+                        if (cropped !== bitmap) cropped.recycle()
+                        bitmap.recycle()
+                    } catch (_: Exception) {
+                        // Ignore a frame invalidated during rotation/display changes.
+                    } finally {
+                        image.close()
+                        frameEncoding.set(false)
+                    }
                 }
             }, null)
 
@@ -189,7 +197,7 @@ class CastActivity : Activity() {
             try {
                 val reader = client.getInputStream().bufferedReader()
                 val request = reader.readLine() ?: return
-                val path = request.split(" ").getOrNull(1) ?: "/"
+                val path = request.split(" ").getOrNull(1)?.substringBefore("?") ?: "/"
                 while (reader.readLine() != "") { /* consume headers */ }
 
                 val output = BufferedOutputStream(client.getOutputStream())
@@ -203,9 +211,30 @@ class CastActivity : Activity() {
     private fun writeHtml(output: OutputStream) {
         val body = """<!doctype html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ParkPlay Phone Cast</title></head>
-<body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh">
-<img src="/stream" style="max-width:100%;max-height:100%;object-fit:contain">
+<title>ParkPlay Phone Cast</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
+#toolbar{height:58px;display:flex;align-items:center;gap:10px;padding:0 12px;box-sizing:border-box;background:#111}
+#toolbar button{font-family:Arial,sans-serif;font-size:18px;font-weight:600;padding:8px 16px}
+#viewer{height:calc(100% - 58px);display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+#screen{width:100%;height:100%;object-fit:contain}
+.fill #screen{object-fit:cover}
+.fit #screen{object-fit:contain}
+#hint{font-size:18px;margin-left:auto;opacity:.85}
+</style>
+</head>
+<body class="fit">
+<div id="toolbar">
+  <button onclick="setMode('fill')">Fill</button>
+  <button onclick="setMode('fit')">Fit</button>
+  <button onclick="reloadStream()">Reload</button>
+  <span id="hint">Phone Cast</span>
+</div>
+<div id="viewer"><img id="screen" src="/stream" alt="Phone screen cast"></div>
+<script>
+function setMode(mode){document.body.className=mode;}
+function reloadStream(){document.getElementById('screen').src='/stream?t='+Date.now();}
+</script>
 </body></html>""".trimIndent()
         val bytes = body.toByteArray()
         output.write("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ${bytes.size}\r\nConnection: close\r\n\r\n".toByteArray())
@@ -226,7 +255,7 @@ class CastActivity : Activity() {
                 output.flush()
                 lastSent = frame
             }
-            Thread.sleep(150)
+            Thread.sleep(100)
         }
     }
 
