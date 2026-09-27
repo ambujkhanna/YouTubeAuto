@@ -123,11 +123,11 @@ class CastActivity : Activity() {
 
             startServer()
             running.set(true)
-            status.text = "Casting locally.\nOpen on another device:\nhttp://DOLLAR{localIp()}:DOLLAR{SERVER_PORT}/"
+            status.text = "Casting locally.\nOpen on another device:\nhttp://${localIp()}:${SERVER_PORT}/"
             startButton.text = "Stop Casting"
         } catch (e: Exception) {
             stopCasting()
-            status.text = "Unable to start casting: DOLLAR{e.message ?: "unknown error"}"
+            status.text = "Unable to start casting: ${e.message ?: "unknown error"}"
         }
     }
 
@@ -172,7 +172,7 @@ class CastActivity : Activity() {
 <img src="/stream" style="max-width:100%;max-height:100%;object-fit:contain">
 </body></html>""".trimIndent()
         val bytes = body.toByteArray()
-        output.write("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: DOLLAR{bytes.size}\r\nConnection: close\r\n\r\n".toByteArray())
+        output.write("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ${bytes.size}\r\nConnection: close\r\n\r\n".toByteArray())
         output.write(bytes)
         output.flush()
     }
@@ -184,7 +184,7 @@ class CastActivity : Activity() {
         while (running.get()) {
             val frame = latestJpeg
             if (frame != null && frame !== lastSent) {
-                output.write("--frame\r\nContent-Type: image/jpeg\r\nContent-Length: DOLLAR{frame.size}\r\n\r\n".toByteArray())
+                output.write("--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${frame.size}\r\n\r\n".toByteArray())
                 output.write(frame)
                 output.write("\r\n".toByteArray())
                 output.flush()
