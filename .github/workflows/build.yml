@@ -39,4 +39,3 @@ jobs:
           name: youtube-auto-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-\n# Phone cast prototype branch build is intentionally enabled above.\n
