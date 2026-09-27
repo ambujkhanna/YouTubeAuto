@@ -36,6 +36,11 @@
             android:resource="@xml/automotive_app_desc" />
 
         <activity
+            android:name=".CastActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor" />
+
+        <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|layoutDirection|locale"
             android:exported="true"
