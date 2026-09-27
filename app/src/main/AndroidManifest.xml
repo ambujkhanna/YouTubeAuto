@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Network access only. No location, microphone, contacts, storage, or notification permissions. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!--
-        Optional Android for Cars capability.
-        This does not bypass driving restrictions; supported car systems
-        may provide driving-optimized audio controls for parked video apps.
-    -->
     <uses-feature
         android:name="com.android.car.background_audio_while_driving"
         android:required="false" />
@@ -35,6 +29,17 @@
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
 
+        <!-- Experimental Android for Cars Navigation service.
+             This is a separate experiment from the existing parked Activity. -->
+        <service
+            android:name=".ParkPlayCarAppService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.NAVIGATION" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|layoutDirection|locale"
@@ -47,7 +52,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.CAR_LAUNCHER" />
-                <category android:name="androidx.car.app.category.NAVIGATION" />
                 <category android:name="android.intent.category.APP_MAPS" />
             </intent-filter>
         </activity>
