@@ -44,8 +44,14 @@
 
         <activity
             android:name=".CastActivity"
-            android:exported="false"
-            android:screenOrientation="fullSensor" />
+            android:exported="true"
+            android:label="ParkPlay Cast Control"
+            android:screenOrientation="fullSensor">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".MainActivity"
