@@ -3,6 +3,8 @@
 
     <!-- Network access only. No location, microphone, contacts, storage, or notification permissions. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <!--
         Optional Android for Cars capability.
@@ -34,6 +36,11 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+
+        <service
+            android:name=".CastProjectionService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
         <activity
             android:name=".CastActivity"
