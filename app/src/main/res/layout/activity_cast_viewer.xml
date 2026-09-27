@@ -8,7 +8,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="8dp"
+        android:padding="10dp"
         android:orientation="horizontal">
 
         <EditText
@@ -20,6 +20,7 @@
             android:singleLine="true"
             android:text="http://192.168.1.7:8080"
             android:textColor="#FFFFFF"
+            android:textSize="20sp"
             android:textColorHint="#AAAAAA" />
 
         <Button
@@ -27,7 +28,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Open"
-            android:textAllCaps="false" />
+            android:textAllCaps="false"
+            android:textSize="18sp" />
     </LinearLayout>
 
     <WebView
