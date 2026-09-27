@@ -6,6 +6,7 @@ on:
       - main
       - chatgpt
       - phone-cast-prototype
+      - phone-cast-media-session-test
   pull_request:
     branches:
       - main
