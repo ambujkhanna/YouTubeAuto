@@ -10,4 +10,61 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#000000" />
+
+    <ImageView
+        android:id="@+id/phoneCastImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:contentDescription="Phone screen cast" />
+
+    <TextView
+        android:id="@+id/phoneCastStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="12dp"
+        android:paddingLeft="12dp"
+        android:paddingTop="6dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="6dp"
+        android:background="#CC000000"
+        android:text="Phone screen cast active"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/parkPlayControls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="64dp"
+        android:padding="4dp"
+        android:orientation="horizontal"
+        android:background="#CC000000">
+
+        <Button
+            android:id="@+id/phoneCastButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Phone Cast"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/castViewerButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cast Viewer"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/minimizeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Minimize"
+            android:textAllCaps="false" />
+    </LinearLayout>
 </FrameLayout>

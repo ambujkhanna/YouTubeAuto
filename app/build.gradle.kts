@@ -10,8 +10,8 @@ android {
         applicationId = "com.ambuj.youtubeauto"
         minSdk = 35
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 13
+        versionName = "0.1.12-cast-viewer"
     }
 
     buildTypes {
@@ -34,4 +34,5 @@ dependencies {
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.webkit:webkit:1.14.0")
+    implementation("androidx.car.app:app:1.7.0")
 }

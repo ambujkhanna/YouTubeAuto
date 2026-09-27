@@ -1,22 +1,57 @@
 package com.ambuj.youtubeauto
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.util.Log
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.app.PictureInPictureParams
+import android.os.Build
+import android.util.Rational
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.car.app.features.CarFeatures
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var phoneCastImage: ImageView
+
+    private val castFrameListener: (Bitmap?) -> Unit = { frame ->
+        runOnUiThread {
+            val active = CastFrameStore.isCasting && frame != null
+            phoneCastImage.visibility = if (active) View.VISIBLE else View.GONE
+            findViewById<View>(R.id.phoneCastStatus)?.visibility =
+                if (active) View.VISIBLE else View.GONE
+            findViewById<View>(R.id.webView)?.visibility =
+                if (active) View.GONE else View.VISIBLE
+            findViewById<View>(R.id.phoneCastButton)?.visibility =
+                if (active) View.GONE else View.VISIBLE
+            findViewById<View>(R.id.minimizeButton)?.visibility =
+                if (active) View.GONE else View.VISIBLE
+            if (active) {
+                phoneCastImage.setImageBitmap(frame)
+            } else {
+                phoneCastImage.setImageDrawable(null)
+            }
+        }
+    }
+
+    private var backgroundAudioWhileDrivingSupported = false
+    private var mediaPausedByLifecycle = false
 
     private var fullscreenView: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
@@ -45,19 +80,68 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-      window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
+        phoneCastImage = findViewById(R.id.phoneCastImage)
+        CastFrameStore.addListener(castFrameListener)
+
+        val root = findViewById<FrameLayout>(R.id.root)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(root)
+
+        findViewById<android.widget.Button>(R.id.minimizeButton).setOnClickListener {
+            enterParkPlayPictureInPicture()
+        }
+
+        findViewById<android.widget.Button>(R.id.castViewerButton).setOnClickListener {
+            startActivity(android.content.Intent(this, CastViewerActivity::class.java))
+        }
+
+        findViewById<android.widget.Button>(R.id.phoneCastButton).setOnClickListener {
+            val displayId = display?.displayId ?: android.view.Display.DEFAULT_DISPLAY
+            if (displayId != android.view.Display.DEFAULT_DISPLAY) {
+                Toast.makeText(
+                    this,
+                    "Start Phone Cast from the ParkPlay Cast Control icon on the phone.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                startActivity(android.content.Intent(this, CastActivity::class.java))
+            }
+        }
+
+        backgroundAudioWhileDrivingSupported = try {
+            CarFeatures.isFeatureEnabled(
+                this,
+                CarFeatures.FEATURE_BACKGROUND_AUDIO_WHILE_DRIVING
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to query background-audio car capability", e)
+            false
+        }
+
+        Log.i(
+            TAG,
+            "Background audio while driving supported: $backgroundAudioWhileDrivingSupported"
+        )
 
         webView = findViewById(R.id.webView)
         webView.setBackgroundColor(Color.BLACK)
 
         webView.settings.apply {
-
             javaScriptEnabled = true
             domStorageEnabled = true
-
             mediaPlaybackRequiresUserGesture = false
+
+            // Reuse WebView HTTP/cache data on repeat launches instead of
+            // forcing a fresh resource download every time.
+            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
 
             builtInZoomControls = false
             displayZoomControls = false
@@ -65,48 +149,18 @@ class MainActivity : AppCompatActivity() {
 
             allowFileAccess = false
             allowContentAccess = false
-
             javaScriptCanOpenWindowsAutomatically = false
-
-            // Privacy: location access remains disabled.
             setGeolocationEnabled(false)
 
-            /*
-             * Keep WebView scaling at its normal value.
-             * This is important for testing the Android Auto
-             * keyboard text-size issue.
-             */
+            // Keep WebView text/display scaling normal.
             textZoom = 100
-
-            /*
-             * Do not force desktop/overview scaling.
-             * Let the responsive YouTube mobile website handle
-             * the display size.
-             */
             useWideViewPort = false
             loadWithOverviewMode = false
-
-            /*
-             * IMPORTANT:
-             * Do not modify the default WebView User-Agent.
-             *
-             * The previous version appended:
-             * "YouTubeAuto/0.1.0"
-             *
-             * Removing that gives YouTube and WebView their
-             * normal browser/device detection behaviour.
-             */
         }
 
-        /*
-         * Cookies are required for normal YouTube login/session behaviour.
-         */
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 
-        /*
-         * Restrict navigation to approved YouTube/Google domains.
-         */
         webView.webViewClient = object : WebViewClient() {
 
             override fun shouldOverrideUrlLoading(
@@ -123,18 +177,22 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 return !isAllowed(Uri.parse(url))
             }
+
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+
+                if (isAllowed(Uri.parse(url))) {
+                    forcePlainTextSearchInputs(view)
+                }
+            }
         }
 
-        /*
-         * Handle YouTube fullscreen video.
-         */
         webView.webChromeClient = object : WebChromeClient() {
 
             override fun onShowCustomView(
                 view: View,
                 callback: CustomViewCallback
             ) {
-
                 if (fullscreenView != null) {
                     callback.onCustomViewHidden()
                     return
@@ -162,21 +220,55 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (savedInstanceState == null) {
-
-            /*
-             * Use the mobile YouTube site for better responsive
-             * sizing and touch targets on the car display.
-             */
             webView.loadUrl("https://m.youtube.com/")
-
         } else {
-
             webView.restoreState(savedInstanceState)
         }
     }
 
-    private fun isAllowed(uri: Uri): Boolean {
+    /**
+     * YouTube's search field can be exposed to Android/Android Auto as a
+     * search/URL-style input. Some car keyboards then show secondary
+     * symbols prominently, making the letters hard to read.
+     *
+     * Change only YouTube search inputs to ordinary text input so the IME
+     * can prefer its alphabetic layout. Android/Android Auto still owns
+     * the actual keyboard, so the final layout remains device-dependent.
+     */
+    private fun forcePlainTextSearchInputs(view: WebView) {
+        val script = """
+            (function() {
+                function fixSearchInputs() {
+                    var inputs = document.querySelectorAll(
+                        'input[type="search"], input[name="search_query"], ' +
+                        'input[role="searchbox"], input[aria-label*="Search" i]'
+                    );
 
+                    inputs.forEach(function(input) {
+                        if (!input || input.dataset.parkplayKeyboardFix === '1') return;
+
+                        input.dataset.parkplayKeyboardFix = '1';
+
+                        try {
+                            input.setAttribute('type', 'text');
+                        } catch (e) {}
+
+                        input.setAttribute('inputmode', 'text');
+                        input.setAttribute('autocapitalize', 'none');
+                        input.setAttribute('autocomplete', 'off');
+                        input.setAttribute('autocorrect', 'off');
+                        input.setAttribute('spellcheck', 'false');
+                    });
+                }
+
+                fixSearchInputs();
+            })();
+        """.trimIndent()
+
+        view.evaluateJavascript(script, null)
+    }
+
+    private fun isAllowed(uri: Uri): Boolean {
         val scheme = uri.scheme?.lowercase() ?: return false
 
         if (scheme != "https") {
@@ -190,8 +282,44 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun hideSystemUi() {
+    private fun enterParkPlayPictureInPicture() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Log.w(TAG, "Picture-in-picture is not supported on this Android version")
+            moveTaskToBack(true)
+            return
+        }
 
+        try {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
+
+            val entered = enterPictureInPictureMode(params)
+
+            if (!entered) {
+                Log.w(TAG, "Picture-in-picture request was not accepted; minimizing task")
+                moveTaskToBack(true)
+            }
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Picture-in-picture unavailable; minimizing task instead", e)
+            moveTaskToBack(true)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Picture-in-picture permission/state rejected; minimizing task instead", e)
+            moveTaskToBack(true)
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+
+        findViewById<android.widget.Button>(R.id.minimizeButton)?.visibility =
+            if (isInPictureInPictureMode) View.GONE else View.VISIBLE
+    }
+
+    private fun hideSystemUi() {
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = (
             View.SYSTEM_UI_FLAG_FULLSCREEN or
@@ -204,7 +332,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun exitFullscreen() {
-
         val view = fullscreenView ?: return
 
         (view.parent as? FrameLayout)?.removeView(view)
@@ -221,31 +348,69 @@ class MainActivity : AppCompatActivity() {
             View.SYSTEM_UI_FLAG_VISIBLE
     }
 
+    @Deprecated("Deprecated in Java")
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-
         if (fullscreenView != null) {
-
             exitFullscreen()
-
         } else if (webView.canGoBack()) {
-
             webView.goBack()
-
         } else {
-
             super.onBackPressed()
         }
     }
 
+    override fun onPause() {
+        // Android Auto may pause/obscure parked apps when driving starts.
+        // Explicitly pause HTML5 media before losing foreground control.
+        mediaPausedByLifecycle = true
+        Log.i(TAG, "Lifecycle pause: pausing HTML5 media")
+        pauseHtml5Media()
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // Do not automatically resume playback here. If Android Auto has
+        // returned control after a driving transition, the user can press
+        // Play again while parked. This avoids accidentally starting media
+        // during a restricted/driving state.
+        if (mediaPausedByLifecycle) {
+            Log.i(TAG, "Lifecycle resume: media remains paused until user starts playback")
+            mediaPausedByLifecycle = false
+            pauseHtml5Media()
+        } else {
+            Log.i(TAG, "Lifecycle resume: no car-induced media pause recorded")
+        }
+    }
+
+    private fun pauseHtml5Media() {
+        if (!::webView.isInitialized) return
+
+        Log.d(TAG, "Requesting HTML5 video/audio pause")
+
+        webView.evaluateJavascript(
+            """
+            (function() {
+                try {
+                    document.querySelectorAll('video, audio').forEach(function(media) {
+                        try { media.pause(); } catch (e) {}
+                    });
+                } catch (e) {}
+            })();
+            """.trimIndent(),
+            null
+        )
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
-
         webView.saveState(outState)
-
         super.onSaveInstanceState(outState)
     }
 
     override fun onDestroy() {
+        CastFrameStore.removeListener(castFrameListener)
 
         if (fullscreenView != null) {
             exitFullscreen()
@@ -253,9 +418,12 @@ class MainActivity : AppCompatActivity() {
 
         webView.stopLoading()
         webView.webChromeClient = null
-
         webView.destroy()
 
         super.onDestroy()
+    }
+
+    companion object {
+        private const val TAG = "ParkPlay"
     }
 }
