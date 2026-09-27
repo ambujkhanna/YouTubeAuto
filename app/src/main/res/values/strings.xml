@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ParkPlay Advik</string>
+    <string name="phone_cast_title">Phone Screen Cast</string>
 </resources>

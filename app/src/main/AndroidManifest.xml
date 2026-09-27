@@ -1,10 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Network access only. No location, microphone, contacts, storage, or notifications. -->
+    <!-- Network access only. No location, microphone, contacts, storage, or notification permissions. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <!--
+        Optional Android for Cars capability.
+        This does not bypass driving restrictions; supported car systems
+        may provide driving-optimized audio controls for parked video apps.
+    -->
+    <uses-feature
+        android:name="com.android.car.background_audio_while_driving"
+        android:required="false" />
 
     <application
+        android:supportsPictureInPicture="true"
         android:allowBackup="false"
         android:appCategory="game"
         android:hardwareAccelerated="true"
@@ -15,7 +28,6 @@
         android:theme="@style/Theme.YouTubeAuto"
         android:usesCleartextTraffic="false">
 
-        <!-- Required for the same sideloaded Android Auto discovery path used by AABrowser. -->
         <meta-data
             android:name="distractionOptimized"
             android:value="true" />
@@ -25,6 +37,32 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+
+        <service
+            android:name=".ParkPlayMediaLibraryService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".CastProjectionService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <activity
+            android:name=".CastActivity"
+            android:exported="true"
+            android:label="ParkPlay Cast Control"
+            android:screenOrientation="fullSensor">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".MainActivity"
@@ -38,7 +76,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.CAR_LAUNCHER" />
-                <category android:name="androidx.car.app.category.NAVIGATION" />
                 <category android:name="android.intent.category.APP_MAPS" />
             </intent-filter>
         </activity>

@@ -10,8 +10,8 @@ android {
         applicationId = "com.ambuj.youtubeauto"
         minSdk = 35
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 11
+        versionName = "0.1.10"
     }
 
     buildTypes {
@@ -34,4 +34,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.webkit:webkit:1.14.0")
+    implementation("androidx.car.app:app:1.7.0")
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-session:1.11.1")
 }
