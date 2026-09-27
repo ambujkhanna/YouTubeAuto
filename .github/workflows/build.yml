@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - chatgpt
+      - carapp-navigation-test
   pull_request:
     branches:
       - main
