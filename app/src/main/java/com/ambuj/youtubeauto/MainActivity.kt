@@ -99,6 +99,10 @@ class MainActivity : AppCompatActivity() {
             enterParkPlayPictureInPicture()
         }
 
+        findViewById<android.widget.Button>(R.id.castViewerButton).setOnClickListener {
+            startActivity(android.content.Intent(this, CastViewerActivity::class.java))
+        }
+
         findViewById<android.widget.Button>(R.id.phoneCastButton).setOnClickListener {
             val displayId = display?.displayId ?: android.view.Display.DEFAULT_DISPLAY
             if (displayId != android.view.Display.DEFAULT_DISPLAY) {
