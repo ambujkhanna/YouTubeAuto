@@ -10,8 +10,8 @@ android {
         applicationId = "com.ambuj.youtubeauto"
         minSdk = 35
         targetSdk = 37
-        versionCode = 10
-        versionName = "0.1.9-cast-viewer"
+        versionCode = 12
+        versionName = "0.1.11-cast-viewer"
     }
 
     buildTypes {
