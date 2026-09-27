@@ -139,6 +139,7 @@ class CastActivity : Activity() {
                     val output = java.io.ByteArrayOutputStream()
                     cropped.compress(Bitmap.CompressFormat.JPEG, 50, output)
                     latestJpeg = output.toByteArray()
+                    CastFrameStore.setFrame(cropped.copy(Bitmap.Config.ARGB_8888, false))
 
                     if (cropped !== bitmap) cropped.recycle()
                     bitmap.recycle()
@@ -157,6 +158,7 @@ class CastActivity : Activity() {
 
             startServer()
             running.set(true)
+            CastFrameStore.setCasting(true)
             status.text = "Casting locally.\nOpen on another device:\nhttp://${localIp()}:${SERVER_PORT}/"
             startButton.text = "Stop Casting"
         } catch (e: Exception) {
@@ -231,6 +233,7 @@ class CastActivity : Activity() {
     private fun stopCasting() {
         running.set(false)
         latestJpeg = null
+        CastFrameStore.setCasting(false)
         try { server?.close() } catch (_: Exception) {}
         server = null
         serverThread = null
