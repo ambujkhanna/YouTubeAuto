@@ -3,6 +3,8 @@ package com.ambuj.youtubeauto
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
@@ -40,6 +42,21 @@ class CastActivity : Activity() {
     private val running = AtomicBoolean(false)
     private val executor = Executors.newCachedThreadPool()
 
+    private val serviceReadyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == CastProjectionService.ACTION_READY && pendingResultData != null) {
+                val data = pendingResultData
+                val code = pendingResultCode
+                pendingResultData = null
+                pendingResultCode = -1
+                continueCasting(code, data!!)
+            }
+        }
+    }
+
+    private var pendingResultCode = -1
+    private var pendingResultData: Intent? = null
+
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
             runOnUiThread {
@@ -54,6 +71,8 @@ class CastActivity : Activity() {
         setContentView(R.layout.activity_cast)
         status = findViewById(R.id.castStatus)
         startButton = findViewById(R.id.startCastButton)
+
+        registerReceiver(serviceReadyReceiver, IntentFilter(CastProjectionService.ACTION_READY), RECEIVER_NOT_EXPORTED)
 
         startButton.setOnClickListener {
             if (running.get()) stopCasting() else requestScreenCapture()
@@ -79,11 +98,10 @@ class CastActivity : Activity() {
     private fun startCasting(resultCode: Int, data: Intent) {
         try {
             status.text = "Starting screen capture..."
+            pendingResultCode = resultCode
+            pendingResultData = data
             val serviceIntent = Intent(this, CastProjectionService::class.java)
             androidx.core.content.ContextCompat.startForegroundService(this, serviceIntent)
-            Handler(Looper.getMainLooper()).postDelayed({
-                continueCasting(resultCode, data)
-            }, 400)
         } catch (e: Exception) {
             stopCasting()
             status.text = "Unable to start casting: ${e.message ?: "unknown error"}"
@@ -228,6 +246,7 @@ class CastActivity : Activity() {
     }
 
     override fun onDestroy() {
+        try { unregisterReceiver(serviceReadyReceiver) } catch (_: Exception) {}
         stopCasting()
         executor.shutdownNow()
         super.onDestroy()
